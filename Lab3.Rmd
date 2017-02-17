@@ -1,0 +1,158 @@
+---
+title: "Lab 3"
+author: "Ryan Morgan"
+date: "February 16, 2017"
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+
+readxl:: excel_sheets("Spreadsheets/FileOne.xlsx")
+
+readxl::read_excel("Spreadsheets/FileOne.xlsx", sheet=1) %>% glimpse()
+
+
+```
+
+First we read in the 8 total sheets.
+
+```{r}
+S11_f1 <- readxl::read_excel("Spreadsheets/FileOne.xlsx", sheet=1)
+
+F11_f1 <-readxl::read_excel("Spreadsheets/FileOne.xlsx", sheet=2)
+
+S12_f1 <- readxl::read_excel("Spreadsheets/FileOne.xlsx", sheet=3)
+
+F12_f1 <- readxl::read_excel("Spreadsheets/FileOne.xlsx", sheet=4) 
+
+S11_f2 <- readxl::read_excel("Spreadsheets/FileTwo.xlsx", sheet=1)
+
+F11_f2 <-readxl::read_excel("Spreadsheets/FileTwo.xlsx", sheet=2)
+
+S12_f2 <- readxl::read_excel("Spreadsheets/FileTwo.xlsx", sheet=3)
+
+F12_f2 <- readxl::read_excel("Spreadsheets/FileTwo.xlsx", sheet=4) 
+
+```
+
+Add column for what semester it is.
+
+
+
+
+Start by making sure columns are labeled.
+
+```{r}
+colnames(F11_f1)[c(1,2)]=c("ID","Test")
+colnames(F11_f2)[c(2)]=c("Test")
+colnames(S12_f1)[c(1,2)]=c("ID","Test")
+colnames(S12_f2)[c(2)]=c("Test")
+
+colnames(F12_f1)[c(1,2)]=c("ID","Test")
+colnames(F12_f2)[c(2)]=c("Test")
+colnames(S11_f1)[c(1,2)]=c("ID","Test")
+colnames(S11_f2)[c(2)]=c("Test")
+
+```
+
+Second semester file 1 has an empty column. So remove that.
+
+```{r}
+F11_f1<- F11_f1[,-15]
+```
+First semester, file 2 missing math3. So go back and add a column of "NA" values. 
+
+```{r}
+S11_f2$"MTH 3" <- rep(NA, nrow(S11_f2))
+```
+
+Last semester, file 2 the id's are too high by 1000.
+
+```{r}
+F12_f2$ID = F12_f2$ID - 1000
+```
+
+Now combine the sheets back together.
+
+
+File1 <- rbind(S11_f1, F11_f1, S12_f1,F12_f1)
+
+File2 <- rbind(S11_f2, F11_f2, S12_f2,F12_f2)
+
+Remove the extra space after treatment 2 in the file 1.
+
+```{r}
+colnames(File1)[18]="Treatment Part 2"
+```
+
+Some test titles are all caps (ex: PRE) while some are not capitilized (ex: Pre). 
+
+```{r}
+File1$Test <- gsub("PRE", "Pre", File1$Test)
+
+File1$Test <- gsub("POST", "Post", File1$Test)
+
+File2$Test <- gsub("PRE", "Pre", File2$Test)
+
+File2$Test <- gsub("POST", "Post", File2$Test)
+
+```
+
+Extract the id, gender, and charachteristic from each file. 
+
+
+newnew doesn't have any NA values (hopefully)
+```{r}
+idgenchar1 <- File1[,c(1,15,16)]
+
+idgenchar2 <- File2[,c(1,36,37)]
+
+idgenchar <- unique(rbind(idgenchar1,idgenchar2))
+
+
+new <- idgenchar[-which(is.na(idgenchar$GENDER)),]
+
+newnew <- new[-which(is.na(new$Characteristic)),]
+
+```
+
+Remove the gender and char columns from other files. 
+```{r}
+File1 <- File1[,-c(15,16)]
+
+File2 <- File2[,-c(36,37)]
+
+```
+
+```{r}
+
+final <- left_join(newnew,File1,by=c("ID"))
+
+done <- left_join(final, File2, by=c("ID","Test"))
+
+test <- done %>% mutate(Semester= floor(ID/10000))
+
+test$Semester = gsub(0,1,test$Semester)
+
+```
+
+
+
+After merging two data frames, we can bring in the third one which has gender and charachteristic.
+
+
+We would want each student to have just 1 row.
+
+
+```{r}
+testing <- test %>% mutate(TotalScore = Total.y + Total.x) %>% select(ID, GENDER, TotalScore, Semester, Test) 
+
+
+pleaseWork <- unique(testing)
+
+pleaseWork%>% spread(key=Test, value=TotalScore) %>% ggplot(aes(x=Pre,y=Post, colour=GENDER)) + geom_point()+facet_wrap(~Semester)
+
+
+
+```
