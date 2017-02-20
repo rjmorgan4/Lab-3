@@ -5,7 +5,7 @@ date: "February 20, 2017"
 output: pdf_document
 ---
 
-```{r}
+```{r echo=TRUE, message=FALSE}
 library(tidyverse)
 
 readxl:: excel_sheets("Spreadsheets/FileOne.xlsx")
@@ -49,19 +49,19 @@ colnames(S11_f2)[c(2)]=c("Test")
 
 ```
 
-The second semester (Fall 2011) in file 1 has an empty column (column 15), so remove that.
+The second semester (Fall 2011) in file 1 has an empty column (column 15), so we remove that.
 
 ```{r}
 F11_f1<- F11_f1[,-15]
 ```
 
-The first semester (Spring 2011) in file 2 is missing the "math3" column, so go back and add a column of "NA" values. 
+The first semester (Spring 2011) in file 2 is missing the "math3" column, so we go back and add a column of "NA" values. 
 
 ```{r}
 S11_f2$"MTH 3" <- rep(NA, nrow(S11_f2))
 ```
 
-The fourth semester (Fall 2012) in file 2 has id's are too high by 1000, so subtract 1000 from the ID column.
+The fourth semester (Fall 2012) in file 2 has id's that are high by 1000, so we subtract 1000 from the ID column.
 
 ```{r}
 F12_f2$ID = F12_f2$ID - 1000
@@ -75,7 +75,7 @@ File1 <- rbind(S11_f1, F11_f1, S12_f1,F12_f1)
 File2 <- rbind(S11_f2, F11_f2, S12_f2,F12_f2)
 ```
 
-Remove the extra space after treatment 2 in the file 1.
+Remove the extra space after treatment 2 column name in the file 1.
 
 ```{r}
 colnames(File1)[18]="Treatment Part 2"
@@ -94,7 +94,7 @@ File2$Test <- gsub("POST", "Post", File2$Test)
 
 ```
 
-We now extract the id, gender, and charachteristic from each file. 
+We now extract the id, gender, and characteristic from each file. 
 
 ```{r}
 idgenchar1 <- File1[,c(1,15,16)]
