@@ -1,7 +1,7 @@
 ---
-title: "Lab 3"
-author: "Ryan Morgan"
-date: "February 16, 2017"
+title: "Stat 585- Lab 3"
+author: "Gaurav Kandoi, Ryan Morgan, Yue Zhang"
+date: "February 20, 2017"
 output: pdf_document
 ---
 
@@ -11,11 +11,9 @@ library(tidyverse)
 readxl:: excel_sheets("Spreadsheets/FileOne.xlsx")
 
 readxl::read_excel("Spreadsheets/FileOne.xlsx", sheet=1) %>% glimpse()
-
-
 ```
 
-First we read in the 8 total sheets.
+First we read in the 8 total sheets from the 2 excel files.
 
 ```{r}
 S11_f1 <- readxl::read_excel("Spreadsheets/FileOne.xlsx", sheet=1)
@@ -36,12 +34,7 @@ F12_f2 <- readxl::read_excel("Spreadsheets/FileTwo.xlsx", sheet=4)
 
 ```
 
-Add column for what semester it is.
-
-
-
-
-Start by making sure columns are labeled.
+The first way we will clean the data is by making sure columns are labeled. We make sure the "ID" column and "Test" column are labeled in the 8 data sets.
 
 ```{r}
 colnames(F11_f1)[c(1,2)]=c("ID","Test")
@@ -56,29 +49,31 @@ colnames(S11_f2)[c(2)]=c("Test")
 
 ```
 
-Second semester file 1 has an empty column. So remove that.
+The second semester (Fall 2011) in file 1 has an empty column (column 15), so remove that.
 
 ```{r}
 F11_f1<- F11_f1[,-15]
 ```
-First semester, file 2 missing math3. So go back and add a column of "NA" values. 
+
+The first semester (Spring 2011) in file 2 is missing the "math3" column, so go back and add a column of "NA" values. 
 
 ```{r}
 S11_f2$"MTH 3" <- rep(NA, nrow(S11_f2))
 ```
 
-Last semester, file 2 the id's are too high by 1000.
+The fourth semester (Fall 2012) in file 2 has id's are too high by 1000, so subtract 1000 from the ID column.
 
 ```{r}
 F12_f2$ID = F12_f2$ID - 1000
 ```
 
-Now combine the sheets back together.
+Now to make cleaning the files easier, we recombine the 8 data files. We store the 4 semesters from file 1 in "File1" and the 4 semesters from file 2 in "File2"
 
-
+```{r}
 File1 <- rbind(S11_f1, F11_f1, S12_f1,F12_f1)
 
 File2 <- rbind(S11_f2, F11_f2, S12_f2,F12_f2)
+```
 
 Remove the extra space after treatment 2 in the file 1.
 
@@ -86,7 +81,7 @@ Remove the extra space after treatment 2 in the file 1.
 colnames(File1)[18]="Treatment Part 2"
 ```
 
-Some test titles are all caps (ex: PRE) while some are not capitilized (ex: Pre). 
+Some test titles are all caps (ex: PRE) while some are not capitilized (ex: Pre), so we make it consistent accross both files.
 
 ```{r}
 File1$Test <- gsub("PRE", "Pre", File1$Test)
@@ -99,10 +94,8 @@ File2$Test <- gsub("POST", "Post", File2$Test)
 
 ```
 
-Extract the id, gender, and charachteristic from each file. 
+We now extract the id, gender, and charachteristic from each file. 
 
-
-newnew doesn't have any NA values (hopefully)
 ```{r}
 idgenchar1 <- File1[,c(1,15,16)]
 
@@ -111,13 +104,12 @@ idgenchar2 <- File2[,c(1,36,37)]
 idgenchar <- unique(rbind(idgenchar1,idgenchar2))
 
 
-new <- idgenchar[-which(is.na(idgenchar$GENDER)),]
+idgenchar <- idgenchar[-which(is.na(idgenchar$GENDER)),]
 
-newnew <- new[-which(is.na(new$Characteristic)),]
-
+idgenchar <- idgenchar[-which(is.na(idgenchar$Characteristic)),]
 ```
 
-Remove the gender and char columns from other files. 
+Remove the gender and char columns from File1 and File2. 
 ```{r}
 File1 <- File1[,-c(15,16)]
 
@@ -125,34 +117,34 @@ File2 <- File2[,-c(36,37)]
 
 ```
 
+We then use left_join to join the two files, stored as "final".
 ```{r}
+final <- left_join(idgenchar,File1,by=c("ID"))
 
-final <- left_join(newnew,File1,by=c("ID"))
+final <- left_join(final, File2, by=c("ID","Test"))
+```
 
-done <- left_join(final, File2, by=c("ID","Test"))
+We don't have a column that denotes the semester, so we use mutate to create a column for what semester it is (either 1,2,3, or 4).
+```{r}
+final <- final %>% mutate(Semester= floor(ID/10000))
 
-test <- done %>% mutate(Semester= floor(ID/10000))
+final$Semester = gsub(0,1,final$Semester)
+```
 
-test$Semester = gsub(0,1,test$Semester)
+We now finalize cleaning the file. We are going to thin down on the columns, and only look at the columns that have the ID, Gender, Semester, Test, Total.x score, Total.y score, and a created variable called TotalScore, which is the sum of Total.y and Total.x. We then only select the unique rows in the data file, so we have no repeats.
+
+
+```{r}
+FinalDataSet <- final %>% mutate(TotalScore = Total.y + Total.x) %>% select(ID, GENDER, TotalScore, Semester, Test) 
+
+
+FinalDataSet <- unique(FinalDataSet)
 
 ```
 
-
-
-After merging two data frames, we can bring in the third one which has gender and charachteristic.
-
-
-We would want each student to have just 1 row.
-
+We then display the data using GGplot. We have scatterplots of TotalScores, faceted by semester
 
 ```{r}
-testing <- test %>% mutate(TotalScore = Total.y + Total.x) %>% select(ID, GENDER, TotalScore, Semester, Test) 
-
-
-pleaseWork <- unique(testing)
-
-pleaseWork%>% spread(key=Test, value=TotalScore) %>% ggplot(aes(x=Pre,y=Post, colour=GENDER)) + geom_point()+facet_wrap(~Semester)
-
-
+FinalDataSet %>% spread(key=Test, value=TotalScore) %>%ggplot(aes(x=Pre,y=Post, colour=GENDER)) + geom_point()+facet_wrap(~Semester)
 
 ```
